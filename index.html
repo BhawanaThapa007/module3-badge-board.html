@@ -1,1 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Module 3 – Game Mechanics Badge Board</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
+  .bb { max-width: 660px; margin: 0 auto; }
 
+  /* Badge grid */
+  .bgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
+  .bc { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 1.25rem; cursor: pointer; display: flex; align-items: center; gap: 14px; transition: border-color 0.15s, box-shadow 0.15s; }
+  .bc:hover { border-color: #aaa; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  .bc.active-card { border: 2px solid #1D9E75; }
+  .bcirc { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; flex-shrink: 0; }
+  .bname { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 2px; }
+  .btag { font-size: 12px; color: #666; margin-bottom: 6px; line-height: 1.4; }
+  .bstat { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; display: inline-block; }
+
+  /* Task panel */
+  .tp { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 1.25rem 1.5rem; }
+  .tlbl { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; display: inline-block; margin-bottom: 8px; }
+  .ttitle { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 3px; }
+  .tnote { font-size: 13px; color: #555; margin-bottom: 1rem; line-height: 1.6; }
+  .sbox { background: #f5f5f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 1rem; font-size: 13px; color: #444; line-height: 1.6; }
+
+  /* Match */
+  .mrow { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .mterm { background: #f5f5f0; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; color: #1a1a1a; min-width: 90px; text-align: center; white-space: nowrap; }
+  .msel { flex: 1; padding: 8px 10px; font-size: 13px; border-radius: 8px; border: 1px solid #ddd; background: #fff; color: #1a1a1a; font-family: inherit; }
+  .msel:focus { outline: none; border-color: #888; }
+  .mc { border-color: #1D9E75 !important; background: #E1F5EE !important; color: #085041 !important; }
+  .mwrong { border-color: #E24B4A !important; background: #FCEBEB !important; color: #791F1F !important; }
+
+  /* True/False */
+  .tfrow { margin-bottom: 14px; }
+  .tfq { font-size: 14px; color: #1a1a1a; line-height: 1.6; margin-bottom: 8px; }
+  .tfbtns { display: flex; gap: 8px; }
+  .tfb { padding: 7px 18px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid #ddd; background: #fff; color: #1a1a1a; cursor: pointer; font-family: inherit; }
+  .tfb:hover { background: #f5f5f0; }
+  .tfb.sel { background: #f5f5f0; border-color: #888; }
+  .tfb.tc { background: #E1F5EE; color: #085041; border-color: #1D9E75; }
+  .tfb.tw { background: #FCEBEB; color: #791F1F; border-color: #E24B4A; }
+
+  /* Select */
+  .srow { margin-bottom: 14px; }
+  .sgoal { font-size: 13px; font-weight: 600; color: #1a1a1a; background: #f5f5f0; padding: 9px 12px; border-radius: 8px; margin-bottom: 8px; line-height: 1.5; }
+  .sopts { display: flex; flex-direction: column; gap: 6px; }
+  .sopt { padding: 9px 12px; font-size: 13px; border-radius: 8px; border: 1px solid #ddd; background: #fff; color: #1a1a1a; cursor: pointer; text-align: left; line-height: 1.5; font-family: inherit; }
+  .sopt:hover { background: #f5f5f0; border-color: #aaa; }
+  .sopt.ssel { background: #f5f5f0; border-color: #888; }
+  .sopt.sc { background: #E1F5EE; color: #085041; border-color: #1D9E75; cursor: default; }
+  .sopt.sw { background: #FCEBEB; color: #791F1F; border-color: #E24B4A; cursor: default; }
+  .sopt.sdim { opacity: 0.35; cursor: default; }
+
+  /* Multi-select */
+  .mopt { padding: 10px 14px; font-size: 13px; border-radius: 8px; border: 1px solid #ddd; background: #fff; color: #1a1a1a; cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; line-height: 1.5; font-family: inherit; text-align: left; width: 100%; }
+  .mopt:hover { background: #f5f5f0; }
+  .mopt.mchk { border-color: #534AB7; background: #EEEDFE; color: #3C3489; }
+  .mopt.mpc { background: #E1F5EE; color: #085041; border-color: #1D9E75; cursor: default; }
+  .mopt.mpw { background: #FCEBEB; color: #791F1F; border-color: #E24B4A; cursor: default; }
+  .mcbox { width: 16px; height: 16px; border: 1.5px solid #bbb; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; }
+  .mopt.mchk .mcbox { background: #534AB7; border-color: #534AB7; color: #fff; }
+  .mopt.mpc .mcbox { background: #1D9E75; border-color: #1D9E75; color: #fff; }
+  .mopt.mpw .mcbox { background: #E24B4A; border-color: #E24B4A; color: #fff; }
+
+  /* Feedback & buttons */
+  .sbtn { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 9px 20px; font-size: 14px; font-weight: 600; color: #1a1a1a; cursor: pointer; margin-top: 1rem; font-family: inherit; }
+  .sbtn:hover { background: #f5f5f0; }
+  .sbtn:disabled { opacity: 0.4; cursor: default; }
+  .fb { border-radius: 8px; padding: 12px 14px; margin-top: 1rem; font-size: 13px; line-height: 1.6; }
+  .fbok { background: #E1F5EE; color: #085041; border-left: 3px solid #1D9E75; }
+  .fberr { background: #FCEBEB; color: #791F1F; border-left: 3px solid #E24B4A; }
+
+  /* Completion */
+  .cscreen { text-align: center; padding: 2rem 0.5rem; background: #fff; border-radius: 12px; }
+  .cbadges { display: flex; justify-content: center; gap: 14px; margin: 1.5rem 0; flex-wrap: wrap; }
+  .cbadge { width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; }
+  .rrow { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #eee; text-align: left; }
+  .rrow:last-child { border-bottom: none; }
+  .rcirc { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+
+  /* Header */
+  .hdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+  .htitle { font-size: 20px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+  .hsub { font-size: 13px; color: #666; }
+  .hcount { text-align: right; }
+  .hnum { font-size: 28px; font-weight: 700; color: #1a1a1a; }
+  .hlbl { font-size: 12px; color: #666; }
+
+  @media(max-width: 480px) {
+    .bgrid { grid-template-columns: 1fr; }
+    .hdr { flex-direction: column; gap: 8px; }
+    .hcount { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="bb" id="root"></div>
+<script>
+const BC = [
+  { f: '#E6F1FB', t: '#0C447C', a: '#185FA5' },
+  { f: '#FAEEDA', t: '#633806', a: '#BA7517' },
+  { f: '#E1F5EE', t: '#085041', a: '#1D9E75' },
+  { f: '#EEEDFE', t: '#3C3489', a: '#534AB7' }
+];
+const badges = [
+  { id: 0, L: 'E', name: 'Explorer', tag: 'Identify core game mechanics' },
+  { id: 1, L: 'A', name: 'Analyst', tag: 'Evaluate mechanics critically' },
+  { id: 2, L: 'S', name: 'Strategist', tag: 'Match mechanics to learning goals' },
+  { id: 3, L: 'D', name: 'Designer', tag: 'Plan a gamified vocabulary unit' }
+];
+const tasks = [
+  {
+    id: 0, type: 'match',
+    title: 'Match each game mechanic to its correct definition.',
+    note: 'Use the dropdowns to pair each term. All three must be correct.',
+    pairs: [
+      { term: 'Points', def: 'Numerical rewards that accumulate to show learner progress' },
+      { term: 'Badges', def: 'Visual awards given when learners reach specific milestones' },
+      { term: 'Narrative', def: 'A storyline that gives context and meaning to learning tasks' }
+    ],
+    defs: ['Numerical rewards that accumulate to show learner progress', 'Visual awards given when learners reach specific milestones', 'A storyline that gives context and meaning to learning tasks']
+  },
+  {
+    id: 1, type: 'tf',
+    title: 'True or False? Answer all three statements.',
+    note: 'Select True or False for each one.',
+    qs: [
+      { q: 'Public leaderboards motivate all students equally, regardless of where they are ranked.', ans: false },
+      { q: 'Badges are most effective when tied to meaningful achievements, not just participation.', ans: true },
+      { q: 'Points alone are sufficient to maintain student motivation across a full vocabulary unit.', ans: false }
+    ]
+  },
+  {
+    id: 2, type: 'sel',
+    title: 'Choose the best mechanic for each classroom goal.',
+    note: 'Select the most appropriate option for each situation.',
+    qs: [
+      { g: 'Students need to revisit vocabulary words multiple times across the week.', opts: ['Public class leaderboard', 'Daily practice streaks rewarded with points', 'Single milestone badge at unit end'], ans: 1 },
+      { g: 'Several students disengage quickly when activities become challenging.', opts: ['Timed elimination speed quiz', 'Narrative quest with gradually increasing challenge', 'Weekly peer ranking display'], ans: 1 },
+      { g: 'You want to visibly celebrate when a student masters 20 new words.', opts: ['Point deductions for incorrect answers', 'Milestone badge awarded on word mastery', 'Team vs. team competition'], ans: 1 }
+    ]
+  },
+  {
+    id: 3, type: 'multi',
+    title: 'Assemble your gamification plan.',
+    note: 'Select exactly 2 mechanics that best fit the scenario below.',
+    scenario: 'You teach Grade 8 English. Your students have mixed motivation levels. You want to encourage consistent effort and celebrate individual milestones — but avoid public shame for lower-performing students.',
+    opts: [
+      { tx: 'Public class leaderboard projected on screen', ok: false },
+      { tx: 'Personal progress points tracker (student sees only their own)', ok: true },
+      { tx: 'Milestone badges awarded when vocabulary targets are reached', ok: true },
+      { tx: 'Timed elimination round removing lowest scorers', ok: false },
+      { tx: 'Weekly team vs. team competition board', ok: false }
+    ]
+  }
+];
+
+let unlocked = [false, false, false, false];
+let active = null;
+let S = {
+  0: { sel: ['', '', ''], chk: false, ok: false },
+  1: { ans: [null, null, null], chk: false, ok: false },
+  2: { ans: [null, null, null], chk: false, ok: false },
+  3: { sel: [], chk: false, ok: false }
+};
+
+function render() {
+  const root = document.getElementById('root');
+  if (unlocked.every(Boolean)) { root.innerHTML = renderDone(); return; }
+  const n = unlocked.filter(Boolean).length;
+  let h = `<div class="hdr">
+    <div><p class="htitle">Game mechanics badge board</p><p class="hsub">Module 3 &middot; Complete all 4 challenges to earn every badge</p></div>
+    <div class="hcount"><p class="hnum">${n}/4</p><p class="hlbl">badges earned</p></div>
+  </div>
+  <div class="bgrid">${badges.map(b => renderBC(b)).join('')}</div>`;
+  if (active !== null) h += renderTP(active);
+  root.innerHTML = h;
+}
+
+function renderBC(b) {
+  const c = BC[b.id]; const u = unlocked[b.id]; const isA = active === b.id;
+  const cs = u ? `background:${c.f};color:${c.t}` : 'background:#f0f0eb;color:#999';
+  const ab = isA ? `border:2px solid ${c.a};` : '';
+  return `<div class="bc${isA ? ' active-card' : ''}" onclick="setA(${b.id})" style="${ab}">
+    <div class="bcirc" style="${cs}">${b.L}</div>
+    <div>
+      <p class="bname">${b.name}</p>
+      <p class="btag">${b.tag}</p>
+      <span class="bstat" style="${cs}">${u ? 'Earned ✓' : 'Locked'}</span>
+    </div>
+  </div>`;
+}
+
+function renderTP(id) {
+  const t = tasks[id]; const b = badges[id]; const c = BC[id]; const s = S[id];
+  let body = '';
+  if (t.type === 'match') body = renderMatch(t, s);
+  else if (t.type === 'tf') body = renderTF(t, s);
+  else if (t.type === 'sel') body = renderSel(t, s);
+  else body = renderMulti(t, s);
+
+  let canSub = false;
+  if (!s.chk) {
+    if (t.type === 'match') canSub = s.sel.every(v => v !== '');
+    else if (t.type === 'tf') canSub = s.ans.every(v => v !== null);
+    else if (t.type === 'sel') canSub = s.ans.every(v => v !== null);
+    else canSub = s.sel.length === 2;
+  } else if (!s.ok) canSub = true;
+
+  const lbl = !s.chk ? 'Check my answers' : s.ok ? 'Badge earned!' : 'Try again \u2192';
+  const fb = s.chk ? (s.ok
+    ? `<div class="fb fbok"><strong>Badge unlocked.</strong> The ${b.name} badge is yours — this skill is now part of your gamification toolkit.</div>`
+    : `<div class="fb fberr"><strong>Not quite.</strong> Review the highlighted answers and try again.</div>`) : '';
+
+  return `<div class="tp" style="margin-top:12px">
+    <span class="tlbl" style="background:${c.f};color:${c.t}">${b.name} badge challenge</span>
+    <p class="ttitle">${t.title}</p>
+    <p class="tnote">${t.note}</p>
+    ${t.type === 'multi' ? `<div class="sbox">${t.scenario}</div>` : ''}
+    ${body}${fb}
+    ${!unlocked[id] ? `<button class="sbtn" onclick="doCheck(${id})" ${canSub ? '' : 'disabled'}>${lbl}</button>` : ''}
+  </div>`;
+}
+
+function renderMatch(t, s) {
+  const all = ['', ...t.defs];
+  return t.pairs.map((p, i) => {
+    const v = s.sel[i];
+    const cls = s.chk ? (v === p.def ? 'mc' : 'mwrong') : '';
+    return `<div class="mrow">
+      <span class="mterm">${p.term}</span>
+      <span style="color:#aaa;font-size:12px">&rarr;</span>
+      <select class="msel ${cls}" onchange="upM(${i},this.value)" ${s.chk && s.ok ? 'disabled' : ''}>
+        ${all.map(o => `<option value="${o}" ${v === o ? 'selected' : ''}>${o || 'Choose a definition\u2026'}</option>`).join('')}
+      </select>
+    </div>`;
+  }).join('');
+}
+
+function renderTF(t, s) {
+  return t.qs.map((q, i) => {
+    const a = s.ans[i];
+    function bc(bv) {
+      if (!s.chk) return a === bv ? 'tfb sel' : 'tfb';
+      if (a === bv) return bv === q.ans ? 'tfb tc' : 'tfb tw';
+      return 'tfb';
+    }
+    const dis = s.chk && s.ok ? 'disabled' : '';
+    return `<div class="tfrow">
+      <p class="tfq">${i + 1}. ${q.q}</p>
+      <div class="tfbtns">
+        <button class="${bc(true)}" onclick="upTF(${i},true)" ${dis}>True</button>
+        <button class="${bc(false)}" onclick="upTF(${i},false)" ${dis}>False</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSel(t, s) {
+  return t.qs.map((q, i) => {
+    const a = s.ans[i];
+    return `<div class="srow">
+      <p class="sgoal">${q.g}</p>
+      <div class="sopts">
+        ${q.opts.map((o, j) => {
+          let cls = 'sopt';
+          if (!s.chk) { if (a === j) cls += ' ssel'; }
+          else { if (a === j) cls += j === q.ans ? ' sc' : ' sw'; else cls += ' sdim'; }
+          return `<button class="${cls}" onclick="upS(${i},${j})" ${s.chk ? 'disabled' : ''}>${o}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMulti(t, s) {
+  return t.opts.map((o, i) => {
+    const isSel = s.sel.includes(i);
+    let cls = 'mopt';
+    if (s.chk) { if (isSel) cls += o.ok ? ' mpc' : ' mpw'; }
+    else if (isSel) cls += ' mchk';
+    const chk = isSel ? '&#10003;' : '';
+    const dis = s.chk && s.ok ? '' : ` onclick="toggleM(${i})"`;
+    return `<button class="${cls}"${dis}>
+      <div class="mcbox">${chk}</div><span>${o.tx}</span>
+    </button>`;
+  }).join('');
+}
+
+function setA(id) { active = active === id ? null : id; render(); }
+function upM(i, v) { S[0].sel[i] = v; S[0].chk = false; render(); }
+function upTF(i, v) { if (S[1].chk && S[1].ok) return; S[1].ans[i] = v; S[1].chk = false; render(); }
+function upS(i, j) { if (S[2].chk && S[2].ok) return; S[2].ans[i] = j; S[2].chk = false; render(); }
+function toggleM(i) {
+  if (S[3].chk && S[3].ok) return;
+  const idx = S[3].sel.indexOf(i);
+  if (idx >= 0) S[3].sel.splice(idx, 1);
+  else if (S[3].sel.length < 2) S[3].sel.push(i);
+  S[3].chk = false; render();
+}
+function doCheck(id) {
+  const s = S[id]; const t = tasks[id];
+  if (s.chk && !s.ok) {
+    s.chk = false;
+    if (id === 0) s.sel = ['', '', ''];
+    else if (id === 1) s.ans = [null, null, null];
+    else if (id === 2) s.ans = [null, null, null];
+    else s.sel = [];
+    render(); return;
+  }
+  s.chk = true;
+  if (id === 0) s.ok = t.pairs.every((p, i) => s.sel[i] === p.def);
+  else if (id === 1) s.ok = t.qs.every((q, i) => s.ans[i] === q.ans);
+  else if (id === 2) s.ok = t.qs.every((q, i) => s.ans[i] === q.ans);
+  else {
+    const ci = t.opts.map((o, i) => o.ok ? i : -1).filter(x => x >= 0);
+    s.ok = s.sel.length === 2 && ci.every(i => s.sel.includes(i));
+  }
+  if (s.ok) unlocked[id] = true;
+  render();
+}
+function renderDone() {
+  return `<div class="cscreen">
+    <p style="font-size:13px;color:#666;margin-bottom:4px">All challenges complete</p>
+    <p style="font-size:20px;font-weight:700;color:#1a1a1a;margin-bottom:8px">You've earned all 4 badges!</p>
+    <p style="font-size:13px;color:#555;max-width:460px;margin:0 auto;line-height:1.6">You can now identify, evaluate, select, and plan game mechanics for EFL vocabulary instruction. Apply these skills when completing the Gamification Planning Matrix in this module.</p>
+    <div class="cbadges">${badges.map(b => `<div class="cbadge" style="background:${BC[b.id].f};color:${BC[b.id].t}">${b.L}</div>`).join('')}</div>
+    <div style="max-width:420px;margin:0 auto">
+      ${badges.map(b => `<div class="rrow">
+        <div class="rcirc" style="background:${BC[b.id].f};color:${BC[b.id].t}">${b.L}</div>
+        <div>
+          <p style="margin:0;font-size:13px;font-weight:600;color:#1a1a1a">${b.name}</p>
+          <p style="margin:0;font-size:12px;color:#666">${b.tag}</p>
+        </div>
+      </div>`).join('')}
+    </div>
+    <button class="sbtn" onclick="restart()" style="margin-top:1.5rem">Restart activity</button>
+  </div>`;
+}
+function restart() {
+  unlocked = [false, false, false, false]; active = null;
+  S = { 0: { sel: ['', '', ''], chk: false, ok: false }, 1: { ans: [null, null, null], chk: false, ok: false }, 2: { ans: [null, null, null], chk: false, ok: false }, 3: { sel: [], chk: false, ok: false } };
+  render();
+}
+render();
+</script>
+</body>
+</html>
